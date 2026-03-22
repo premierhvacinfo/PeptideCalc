@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Peptide Calc</title>
+<meta name="description" content="Peptide reconstitution calculator for research use">
+<meta name="theme-color" content="#0e0f11">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Peptide Calc">
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #000000;
+  --surface:    #0a0a0a;
+  --surface2:   #111111;
+  --border:     rgba(77,166,255,0.18);
+  --border-hi:  rgba(77,166,255,0.35);
+  --accent:     #4da6ff;
+  --accent-dim: rgba(77,166,255,0.12);
+  --accent-glow:rgba(77,166,255,0.28);
+  --text:       #ffffff;
+  --text-muted: rgba(255,255,255,0.5);
+  --text-dim:   rgba(255,255,255,0.25);
+  --warn:       #f0a050;
+  --warn-dim:   rgba(240,160,80,0.12);
+  --danger:     #f05a5a;
+  --danger-dim: rgba(240,90,90,0.12);
+  --gh:         #4da6ff;
+  --gh-dim:     rgba(77,166,255,0.10);
+  --gh-border:  rgba(77,166,255,0.25);
+  --mono:       'DM Mono', monospace;
+  --sans:       'DM Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.page { width: 100%; max-width: 620px; margin: 0 auto; }
+
+/* Header */
+.header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); background:#000000; }
+.header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff4444; box-shadow: 0 0 10px rgba(255,68,68,0.4);
+  animation: pulse 2.5s ease-in-out infinite; flex-shrink: 0;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; box-shadow:0 0 10px var(--accent-glow); }
+  50%      { opacity:.5; box-shadow:0 0 4px var(--accent-glow); }
+}
+.header-label { font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:#4da6ff; text-transform:uppercase; }
+h1 { font-size:24px; font-weight:300; letter-spacing:-.02em; line-height:1.2; }
+h1 span { font-weight:500; }
+.subtitle { font-size:13px; color:#4da6ff; margin-top:4px; }
+
+/* Global bar */
+.global-bar {
+  display:flex; align-items:center; gap:12px;
+  background:#000000; border:1px solid var(--border);
+  border-radius:10px; padding:12px 16px; margin-bottom:1.5rem;
+}
+.global-bar label { font-size:12px; color:#ff4444; white-space:nowrap; }
+.global-bar select {
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-family:var(--mono);
+  font-size:13px; padding:7px 28px 7px 10px; outline:none;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a7f8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+  cursor:pointer; transition:border-color .15s;
+}
+.global-bar select:focus { border-color:var(--accent); }
+
+/* Card list */
+#peptide-list { display:flex; flex-direction:column; gap:16px; }
+
+.peptide-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; overflow:hidden;
+  animation:fadeIn .2s ease; transition:opacity .15s,transform .15s;
+}
+.peptide-card.gh-mode { border-color: var(--gh-border); }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* Card header */
+.card-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; border-bottom:1px solid var(--border); gap:10px;
+}
+.card-header-left { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+.card-num { font-family:var(--mono); font-size:10px; color:#2a7a62; letter-spacing:.08em; flex-shrink:0; }
+.card-color-bar { width:3px; height:18px; border-radius:99px; flex-shrink:0; }
+
+.card-name-select {
+  background:transparent; border:none; outline:none;
+  font-family:var(--sans); font-size:14px; font-weight:500;
+  color:#ffffff; min-width:0; flex:1; cursor:pointer;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23444954' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 4px center;
+  padding-right:20px; max-width:260px;
+}
+.card-name-select option { background:#000000; color:#ffffff; font-weight:400; }
+.card-name-select option:disabled { color:#444954; }
+.card-name-select optgroup { color:var(--text-muted); font-size:11px; }
+
+.gh-badge {
+  font-family:var(--mono); font-size:9px; letter-spacing:.08em;
+  color:var(--gh); background:var(--gh-dim);
+  border:1px solid var(--gh-border); border-radius:4px;
+  padding:2px 7px; white-space:nowrap; display:none; flex-shrink:0;
+}
+.gh-mode .gh-badge { display:inline-block; }
+
+.card-header-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.card-status { width:6px; height:6px; border-radius:50%; background:var(--text-dim); transition:background .2s; }
+.card-status.ok     { background:var(--accent); }
+.card-status.warn   { background:var(--warn); }
+.card-status.danger { background:var(--danger); }
+
+.btn-remove {
+  background:none; border:none; cursor:pointer; color:var(--text-dim);
+  font-size:20px; line-height:1; padding:0 2px; border-radius:4px;
+  transition:color .15s,background .15s;
+  display:flex; align-items:center; justify-content:center; width:24px; height:24px;
+}
+.btn-remove:hover { color:var(--danger); background:var(--danger-dim); }
+
+/* Card body */
+.card-body { padding:16px; }
+
+/* GH note banner */
+.gh-note {
+  display:none; font-size:11px; color:var(--gh);
+  background:var(--gh-dim); border:1px solid var(--gh-border);
+  border-radius:7px; padding:9px 13px; margin-bottom:12px; line-height:1.6;
+}
+.gh-mode .gh-note { display:block; }
+
+/* Input rows */
+.row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
+
+/* GH vial row (hidden unless gh-mode) */
+.row-gh { display:none; }
+.gh-mode .row-gh { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+
+/* Dose row: amount takes 2/3, unit takes 1/3 */
+.row-dose { display:grid; grid-template-columns:2fr 1fr; gap:10px; margin-bottom:14px; }
+
+.field { display:flex; flex-direction:column; gap:5px; }
+.field label { font-size:11px; color:#ff4444; font-weight:500; letter-spacing:.02em; }
+
+.field input, .field select {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:7px; color:var(--text); font-family:var(--mono);
+  font-size:13px; padding:8px 10px; outline:none; width:100%;
+  -webkit-appearance:none; appearance:none; transition:border-color .15s;
+}
+.field select {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a7f8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 9px center; padding-right:26px; cursor:pointer;
+}
+.field input:focus, .field select:focus { border-color:var(--accent); }
+.gh-mode .field input:focus, .gh-mode .field select:focus { border-color:var(--gh); }
+.field input:hover, .field select:hover { border-color:var(--border-hi); }
+
+/* GH unit locked style */
+.gh-mode .inp-unit { color:var(--gh); border-color:rgba(167,139,250,.3); pointer-events:none; }
+
+/* Results panel */
+.results-panel {
+  background:var(--surface2); border-radius:9px; overflow:hidden; border:1px solid var(--border);
+}
+.gh-mode .results-panel { border-color:var(--gh-border); }
+
+.results-row { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--border); }
+.stat { padding:12px 14px; border-right:1px solid var(--border); }
+.stat:last-child { border-right:none; }
+.stat-label { font-size:10px; color:#ffffff; margin-bottom:3px; font-weight:500; }
+.stat-value { font-family:var(--mono); font-size:16px; font-weight:500; color:#ffffff; line-height:1; }
+.stat-unit  { font-size:9px; color:#4da6ff; margin-top:2px; font-family:var(--mono); }
+
+.draw-row { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 10px; gap:12px; }
+.draw-label { font-size:10px; color:#ffffff; text-transform:uppercase; letter-spacing:.08em; font-family:var(--mono); margin-bottom:6px; font-weight:500; }
+.draw-col { display:flex; flex-direction:column; }
+.draw-col-right { align-items:flex-end; }
+.draw-primary { font-family:var(--mono); font-size:26px; font-weight:500; color:#ffffff; line-height:1; transition:color .2s; }
+.draw-sub-label { font-size:10px; color:#4da6ff; font-family:var(--mono); margin-top:3px; }
+
+.syringe-wrap { padding:0 14px 12px; }
+.syringe-track { position:relative; height:8px; background:var(--bg); border-radius:99px; overflow:hidden; border:1px solid var(--border); }
+.syringe-fill { position:absolute; left:0; top:0; bottom:0; border-radius:99px; transition:width .3s cubic-bezier(.4,0,.2,1),background .2s; }
+.syringe-labels { display:flex; justify-content:space-between; font-family:var(--mono); font-size:9px; color:#2a7a62; margin-top:4px; }
+
+.card-alert { margin:0 14px 12px; padding:8px 12px; border-radius:7px; font-size:11px; line-height:1.5; display:none; }
+.card-alert.warn   { display:block; background:var(--warn-dim);   border:1px solid rgba(240,160,80,.2); color:var(--warn); }
+.card-alert.danger { display:block; background:var(--danger-dim); border:1px solid rgba(240,90,90,.2);  color:var(--danger); }
+
+/* Add button */
+.btn-add {
+  width:100%; margin-top:16px; padding:13px;
+  background:#000000; border:1px dashed rgba(250,200,90,0.3);
+  border-radius:12px; color:#fac85a;
+  font-family:var(--sans); font-size:13px; cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-add:hover { border-color:#4da6ff; color:#4da6ff; background:#000000; }
+.btn-add-icon { font-size:20px; font-weight:300; line-height:1; }
+
+/* Summary */
+.summary { margin-top:24px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+.summary-title { font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:#4da6ff; text-transform:uppercase; margin-bottom:14px; }
+.summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.summary-stat { display:flex; flex-direction:column; gap:3px; }
+.summary-label { font-size:11px; color:#4da6ff; }
+.summary-value { font-family:var(--mono); font-size:20px; font-weight:500; color:#ffffff; }
+.summary-unit { font-size:10px; color:#4da6ff; font-family:var(--mono); }
+
+
+/* Blend section */
+.blend-section-header { margin-top:2rem; margin-bottom:1rem; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.blend-section-label { font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:#ff4444; text-transform:uppercase; display:block; margin-bottom:3px; }
+.blend-section-sub { font-size:12px; color:#4da6ff; }
+
+#blend-list { display:flex; flex-direction:column; gap:16px; }
+
+.blend-card {
+  background:var(--surface); border:1px solid rgba(255,68,68,0.2);
+  border-radius:14px; overflow:hidden;
+  animation:fadeIn .2s ease; transition:opacity .15s,transform .15s;
+}
+.blend-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; border-bottom:1px solid var(--border); gap:10px;
+  background:rgba(255,68,68,0.04);
+}
+.blend-header-left { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+.blend-badge { font-family:var(--mono); font-size:9px; letter-spacing:.08em; color:#ff4444; background:rgba(255,68,68,0.12); border:1px solid rgba(255,68,68,0.3); border-radius:4px; padding:2px 7px; white-space:nowrap; flex-shrink:0; }
+.blend-name-input { background:transparent; border:none; outline:none; font-family:var(--sans); font-size:14px; font-weight:500; color:var(--text); min-width:0; flex:1; }
+.blend-name-input::placeholder { color:var(--text-dim); }
+.blend-body { padding:16px; }
+
+/* Top row: BAC water */
+.blend-bac-row { margin-bottom:14px; }
+.blend-bac-row .field label { font-size:11px; color:#ff4444; font-weight:500; }
+
+/* Anchor peptide block */
+.blend-anchor {
+  background:var(--surface2); border:1px solid rgba(250,200,90,0.25);
+  border-radius:9px; padding:12px 14px; margin-bottom:10px;
+}
+.blend-anchor-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.blend-anchor-badge { font-family:var(--mono); font-size:9px; letter-spacing:.06em; color:#4da6ff; background:rgba(77,166,255,0.12); border:1px solid rgba(77,166,255,0.3); border-radius:3px; padding:2px 6px; }
+.blend-anchor-label { font-size:11px; color:#ff4444; }
+.blend-anchor-inputs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+
+/* Component list */
+.blend-components { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.blend-component {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:9px; padding:10px 12px;
+  display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:12px;
+}
+.blend-comp-name-input { background:transparent; border:none; outline:none; font-family:var(--sans); font-size:13px; font-weight:500; color:var(--text); min-width:0; width:100%; }
+.blend-comp-name-input::placeholder { color:var(--text-dim); }
+.blend-comp-mg-wrap { display:flex; flex-direction:column; gap:3px; align-items:flex-end; }
+.blend-comp-mg-label { font-size:9px; color:#ff4444; font-family:var(--mono); }
+.blend-comp-mg-input { width:70px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:var(--mono); font-size:12px; padding:5px 8px; outline:none; text-align:right; -webkit-appearance:none; appearance:none; }
+.blend-comp-mg-input:focus { border-color:rgba(250,200,90,0.4); }
+.blend-comp-result-wrap { display:flex; flex-direction:column; gap:2px; align-items:flex-end; min-width:80px; }
+.blend-comp-dose-val { font-family:var(--mono); font-size:15px; font-weight:500; color:#ffffff; line-height:1; }
+.blend-comp-dose-unit { font-size:9px; color:#4da6ff; font-family:var(--mono); }
+.btn-remove-comp { background:none; border:none; cursor:pointer; color:var(--text-dim); font-size:16px; line-height:1; padding:0 2px; border-radius:3px; transition:color .15s,background .15s; flex-shrink:0; }
+.btn-remove-comp:hover { color:var(--danger); background:var(--danger-dim); }
+
+/* Overall draw result */
+.blend-draw-result {
+  background:var(--surface2); border:1px solid rgba(77,166,255,0.2);
+  border-radius:9px; padding:14px 16px; margin-top:4px;
+}
+.blend-draw-title { font-family:var(--mono); font-size:10px; letter-spacing:.08em; color:#3db896; text-transform:uppercase; margin-bottom:10px; }
+.blend-draw-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.blend-draw-col { display:flex; flex-direction:column; }
+.blend-draw-col-right { align-items:flex-end; }
+.blend-draw-num { font-family:var(--mono); font-size:26px; font-weight:500; color:#ffffff; line-height:1; }
+.blend-draw-sub { font-size:10px; color:#4da6ff; font-family:var(--mono); margin-top:3px; }
+.blend-draw-label { font-size:10px; color:#ffffff; text-transform:uppercase; letter-spacing:.08em; font-family:var(--mono); margin-bottom:6px; }
+
+.btn-add-comp {
+  width:100%; padding:8px;
+  background:#000000; border:1px dashed rgba(77,166,255,0.3);
+  border-radius:7px; color:#4da6ff;
+  font-family:var(--sans); font-size:12px; cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  margin-bottom:12px;
+}
+.btn-add-comp:hover { border-color:#4da6ff; color:#4da6ff; background:#000000; }
+
+.btn-add-blend { border-color:rgba(77,166,255,0.3); color:#4da6ff; margin-top:12px; background:#000000; }
+.btn-add-blend:hover { border-color:#4da6ff; color:#4da6ff; background:#000000; }
+
+
+/* ── Saved Formulas ── */
+.saved-section { margin-top:2rem; }
+.saved-section-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:14px;
+}
+.saved-section-title { font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:#4da6ff; text-transform:uppercase; }
+.saved-count { font-family:var(--mono); font-size:11px; color:#3db896; }
+.saved-empty { font-size:13px; color:#2a7a62; text-align:center; padding:20px 0; font-family:var(--mono); }
+
+.saved-list { display:flex; flex-direction:column; gap:8px; }
+
+.saved-item {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px;
+  display:flex; align-items:center; gap:12px;
+  transition:border-color .15s;
+}
+.saved-item:hover { border-color:var(--border-hi); }
+.saved-item-icon {
+  width:32px; height:32px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px;
+}
+.saved-item-icon.type-peptide { background:var(--accent-dim); }
+.saved-item-icon.type-blend   { background:rgba(250,200,90,0.12); }
+.saved-item-info { flex:1; min-width:0; }
+.saved-item-name { font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.saved-item-meta { font-size:11px; color:#3db896; font-family:var(--mono); margin-top:2px; }
+.saved-item-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+
+.btn-load {
+  background:rgba(77,166,255,0.12); border:1px solid rgba(77,166,255,0.3);
+  border-radius:6px; color:#4da6ff; font-family:var(--mono);
+  font-size:11px; padding:5px 10px; cursor:pointer;
+  transition:background .15s, border-color .15s; white-space:nowrap;
+}
+.btn-load:hover { background:rgba(90,240,196,0.2); border-color:var(--accent); }
+.btn-load.blend-load { background:rgba(255,68,68,0.1); border-color:rgba(255,68,68,0.2); color:#ff4444; }
+.btn-load.blend-load:hover { background:rgba(255,68,68,0.2); border-color:#ff4444; }
+
+.btn-del-saved {
+  background:none; border:none; cursor:pointer; color:var(--text-dim);
+  font-size:16px; line-height:1; padding:2px 4px; border-radius:4px;
+  transition:color .15s,background .15s;
+}
+.btn-del-saved:hover { color:var(--danger); background:var(--danger-dim); }
+
+/* Save button on each card */
+.btn-save-formula {
+  background:#ff4444; border:1px solid #ff4444;
+  border-radius:6px; color:#ffffff;
+  font-family:var(--mono); font-size:10px; letter-spacing:.04em;
+  padding:3px 9px; cursor:pointer;
+  transition:color .15s, border-color .15s, background .15s;
+  white-space:nowrap; display:flex; align-items:center; gap:5px;
+  font-weight:600;
+}
+.btn-save-formula:hover { background:#cc2222; border-color:#cc2222; color:#ffffff; }
+.btn-save-formula.saved-flash { background:#cc2222; border-color:#cc2222; color:#ffffff; }
+.btn-save-formula.blend-save { background:#4da6ff; border:1px solid #4da6ff; color:#000000; }
+.btn-save-formula.blend-save:hover { background:#2d8ae0; border-color:#2d8ae0; color:#000000; }
+
+/* Toast notification */
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--surface); border:1px solid var(--accent);
+  border-radius:8px; padding:10px 18px;
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  opacity:0; transition:opacity .2s, transform .2s;
+  pointer-events:none; z-index:999; white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+.disclaimer { margin-top:1.5rem; font-size:11px; color:var(--text-dim); line-height:1.6; text-align:center; }
+
+@media (max-width:480px) {
+  .results-row { grid-template-columns:1fr 1fr; }
+  .results-row .stat:nth-child(2) { border-right:none; }
+  .results-row .stat:nth-child(3) { border-top:1px solid var(--border); grid-column:1/-1; border-right:none; }
+  .summary-grid { grid-template-columns:1fr 1fr; }
+  .row-dose { grid-template-columns:1fr 1fr; }
+}
+
+/* Install banner */
+.install-banner {
+  display:none; position:fixed; bottom:0; left:0; right:0;
+  background:var(--surface); border-top:1px solid var(--accent);
+  padding:14px 20px; align-items:center; justify-content:space-between;
+  gap:12px; z-index:9999;
+}
+.install-banner-text { font-size:13px; color:var(--text); flex:1; }
+.install-banner-text span { color:var(--accent); font-weight:500; }
+.btn-install {
+  background:var(--accent); border:none; border-radius:8px;
+  color:#0e0f11; font-family:var(--mono); font-size:12px;
+  font-weight:500; padding:8px 16px; cursor:pointer;
+  white-space:nowrap; flex-shrink:0;
+}
+.btn-install-dismiss {
+  background:none; border:none; color:var(--text-dim);
+  font-size:20px; cursor:pointer; padding:0 4px; flex-shrink:0;
+}
+</style>
+</head>
+<body>
+
+<div class="install-banner" id="install-banner">
+  <div class="install-banner-text">Add <span>Peptide Calc</span> to your home screen for quick access</div>
+  <button class="btn-install" id="btn-install">Install</button>
+  <button class="btn-install-dismiss" onclick="document.getElementById('install-banner').style.display='none'">&#215;</button>
+</div>
+<div class="page">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-dot"></div>
+      <span class="header-label">Research Tool</span>
+    </div>
+    <h1>Peptide <span>Reconstitution</span> Calculator</h1>
+    <p class="subtitle">For research use only &mdash; not for human or veterinary use</p>
+  </div>
+
+  <div class="global-bar">
+    <label>Syringe size (all peptides)</label>
+    <select id="global_syringe">
+      <option value="0.3">0.3 mL &mdash; 30 unit</option>
+      <option value="0.5" selected>0.5 mL &mdash; 50 unit</option>
+      <option value="1">1.0 mL &mdash; 100 unit</option>
+    </select>
+  </div>
+
+  <div id="peptide-list"></div>
+
+  <button class="btn-add" id="btn-add">
+    <span class="btn-add-icon">+</span>
+    Add another peptide
+  </button>
+
+  <div class="summary" id="summary" style="display:none;">
+    <div class="summary-title">Session summary</div>
+    <div class="summary-grid">
+      <div class="summary-stat">
+        <span class="summary-label">Peptides</span>
+        <span class="summary-value" id="sum-count">—</span>
+        <span class="summary-unit">vials</span>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-label">Total draw</span>
+        <span class="summary-value" id="sum-draw">—</span>
+        <span class="summary-unit" id="sum-draw-unit">units combined</span>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-label">Avg doses/vial</span>
+        <span class="summary-value" id="sum-doses">—</span>
+        <span class="summary-unit">doses</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blend section -->
+  <div class="blend-section-header">
+    <span class="blend-section-label">Blended Peptide Formulas</span>
+    <span class="blend-section-sub">Multiple peptides reconstituted together in one vial</span>
+  </div>
+  <div id="blend-list"></div>
+  <button class="btn-add btn-add-blend" id="btn-add-blend">
+    <span class="btn-add-icon">+</span>
+    Add blended formula
+  </button>
+
+
+  <!-- Saved Formulas -->
+  <div class="saved-section">
+    <div class="saved-section-header">
+      <span class="saved-section-title">Saved Formulas</span>
+      <span class="saved-count" id="saved-count">0 saved</span>
+    </div>
+    <div id="saved-list">
+      <div class="saved-empty" id="saved-empty">No saved formulas yet — click "Save" on any peptide or blend card</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+
+  <p class="disclaimer">
+    For research purposes only. This tool assists with laboratory reconstitution calculations.<br>
+    Not intended to guide dosing for humans or animals.
+  </p>
+
+</div>
+<script>
+const COLORS = ['#5af0c4','#5ab4f0','#c47af0','#f0905a','#f0d85a','#5af07a','#f05ab4','#a0e060'];
+
+// [name, defaultMg, defaultDose, defaultUnit, isGH, ghVialIU, ghVialMg]
+// isGH = true  → special Growth Hormone IU mode
+// ghVialIU     → typical vial IU strength
+// ghVialMg     → typical vial mass (mg); 1 IU rHGH ≈ 0.333 mg
+const PEPTIDES_RAW = [
+  // All peptides — will be sorted alphabetically before use
+  // isGH:true = Growth Hormone IU mode  |  fields: name, mg, dose, unit, isGH, ghIU
+  { name:'5-Amino-1MQ',                  mg:50,   dose:50,   unit:'mg',  isGH:false, ghIU:0 },
+  { name:'AOD-9604',                     mg:5,    dose:300,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'BPC-157',                      mg:5,    dose:250,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Cagrilintide',                 mg:5,    dose:300,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'CJC-1295 (no DAC)',            mg:2,    dose:100,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'CJC-1295 (with DAC)',          mg:2,    dose:1,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Dihexa',                       mg:10,   dose:1,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'DSIP (Delta Sleep Peptide)',   mg:5,    dose:200,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Epithalon',                    mg:10,   dose:5,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'GHK-Cu',                       mg:50,   dose:2,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'GHRP-2',                       mg:5,    dose:100,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'GHRP-6',                       mg:5,    dose:100,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Glutathione',                  mg:200,  dose:200,  unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Growth Hormone (rHGH)',        mg:'',   dose:2,    unit:'iu',  isGH:true,  ghIU:10 },
+  { name:'HCG',                          mg:'',   dose:500,  unit:'iu',  isGH:false, ghIU:0 },
+  { name:'Hexarelin',                    mg:2,    dose:200,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Humanin',                      mg:5,    dose:2,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'IGF-1 LR3',                    mg:1,    dose:50,   unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Ipamorelin',                   mg:2,    dose:200,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Kisspeptin',                   mg:2,    dose:100,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'KPV',                          mg:5,    dose:500,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'LL-37',                        mg:5,    dose:100,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Melatonin',                    mg:10,   dose:500,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Melanotan I (MT-1)',           mg:10,   dose:500,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Melanotan II (MT-2)',          mg:10,   dose:500,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'MK-677 (Ibutamoren)',          mg:10,   dose:25,   unit:'mg',  isGH:false, ghIU:0 },
+  { name:'MOTS-c',                       mg:5,    dose:5,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'NAD+',                         mg:500,  dose:100,  unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Oxytocin',                     mg:2,    dose:20,   unit:'iu',  isGH:false, ghIU:0 },
+  { name:'PT-141 (Bremelanotide)',       mg:10,   dose:1,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Retatrutide',                  mg:5,    dose:2,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Selank',                       mg:5,    dose:250,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Semaglutide',                  mg:3,    dose:250,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Semax',                        mg:5,    dose:300,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Sermorelin',                   mg:2,    dose:200,  unit:'mcg', isGH:false, ghIU:0 },
+  { name:'SS-31 (Elamipretide)',         mg:5,    dose:2,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'TB-500 (Thymosin Beta-4)',     mg:5,    dose:2.5,  unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Tesamorelin',                  mg:2,    dose:1,    unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Thymosin Alpha-1 (TA-1)',     mg:5,    dose:1.5,  unit:'mg',  isGH:false, ghIU:0 },
+  { name:'Tirzepatide',                  mg:5,    dose:2.5,  unit:'mg',  isGH:false, ghIU:0 },
+  { name:'VIP (Vasoactive Intestinal)',  mg:1,    dose:50,   unit:'mcg', isGH:false, ghIU:0 },
+  { name:'Custom / Other',              mg:'',   dose:'',   unit:'mcg', isGH:false, ghIU:0 },
+];
+
+// Sort alphabetically (Custom/Other always last), then prepend placeholder
+const PEPTIDES = [
+  { name:'— Select peptide —', mg:'', dose:'', unit:'mcg', isGH:false, ghIU:0, disabled:true },
+  ...PEPTIDES_RAW.slice(0, -1).sort((a,b) => a.name.localeCompare(b.name)),
+  PEPTIDES_RAW[PEPTIDES_RAW.length - 1], // Custom / Other last
+];
+
+let peptides = [];
+let nextId = 1;
+
+function getSyringeML() { return parseFloat(document.getElementById('global_syringe').value) || 0.5; }
+
+function addPeptide() {
+  const id    = nextId++;
+  const color = COLORS[peptides.length % COLORS.length];
+  peptides.push({ id, color });
+  renderCard(id, color);
+  updateSummary();
+}
+
+function removePeptide(id) {
+  const el = document.getElementById('card-' + id);
+  if (el) {
+    el.style.opacity = '0'; el.style.transform = 'translateY(-6px)';
+    setTimeout(() => { el.remove(); renumber(); updateSummary(); }, 160);
+  }
+  peptides = peptides.filter(p => p.id !== id);
+}
+
+function renumber() {
+  document.querySelectorAll('.peptide-card').forEach((card, i) => {
+    const n = card.querySelector('.card-num');
+    if (n) n.textContent = String(i + 1).padStart(2, '0');
+  });
+}
+
+function buildOptions() {
+  return PEPTIDES.map((p, i) => {
+    if (p.disabled) return `<option value="${i}" disabled selected>${p.name}</option>`;
+    return `<option value="${i}">${p.name}</option>`;
+  }).join('');
+}
+
+function renderCard(id, color) {
+  const list = document.getElementById('peptide-list');
+  const idx  = peptides.length;
+  const div  = document.createElement('div');
+  div.className = 'peptide-card';
+  div.id = 'card-' + id;
+
+  div.innerHTML = `
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="card-num">${String(idx).padStart(2,'0')}</span>
+        <div class="card-color-bar" style="background:${color}"></div>
+        <select class="card-name-select">${buildOptions()}</select>
+        <span class="gh-badge">GH &bull; IU</span>
+      </div>
+      <div class="card-header-right">
+        <div class="card-status" id="status-${id}"></div>
+        <button class="btn-save-formula" data-id="${id}" data-type="peptide" title="Save this formula">&#9745; Save</button>
+        <button class="btn-remove" data-id="${id}">&#215;</button>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="gh-note">
+        Growth Hormone is dosed in <strong>IU</strong>. Enter the vial's total IU and the volume of
+        bacteriostatic water added. The calculator handles the rest automatically.
+      </div>
+
+      <!-- Standard: peptide mg + bac water -->
+      <div class="row-2 row-standard">
+        <div class="field">
+          <label class="lbl-mg">Peptide (mg)</label>
+          <input type="number" class="inp-mg" value="" placeholder="e.g. 5" min="0.001" step="0.1">
+        </div>
+        <div class="field">
+          <label>BAC water (mL)</label>
+          <input type="number" class="inp-bac" value="2" min="0.1" step="0.1">
+        </div>
+      </div>
+
+      <!-- GH only: vial IU + vial mg + bac water -->
+      <div class="row-gh">
+        <div class="field">
+          <label>Vial strength (IU)</label>
+          <input type="number" class="inp-gh-iu" value="10" min="1" step="1">
+        </div>
+        <div class="field">
+          <label>BAC water (mL)</label>
+          <input type="number" class="inp-gh-bac" value="2" min="0.1" step="0.1">
+        </div>
+      </div>
+
+      <!-- Dose amount + dose unit side by side -->
+      <div class="row-dose">
+        <div class="field">
+          <label>Dose amount</label>
+          <input type="number" class="inp-dose" value="" placeholder="e.g. 250" min="0.001" step="1">
+        </div>
+        <div class="field">
+          <label>Unit</label>
+          <select class="inp-unit">
+            <option value="mcg">mcg</option>
+            <option value="mg">mg</option>
+            <option value="iu">IU</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="results-panel">
+        <div class="results-row">
+          <div class="stat">
+            <div class="stat-label">Concentration</div>
+            <div class="stat-value" id="conc-${id}">—</div>
+            <div class="stat-unit" id="conc-unit-${id}">mcg/mL</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Doses / vial</div>
+            <div class="stat-value" id="doses-${id}">—</div>
+            <div class="stat-unit">doses</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label" id="total-label-${id}">Total</div>
+            <div class="stat-value" id="total-${id}">—</div>
+            <div class="stat-unit" id="total-unit-${id}">mcg</div>
+          </div>
+        </div>
+        <div class="draw-row">
+          <div class="draw-col">
+            <div class="draw-label">Draw up</div>
+            <div class="draw-primary" id="draw-units-${id}" style="color:${color}">—</div>
+            <div class="draw-sub-label">syringe units</div>
+          </div>
+          <div class="draw-col draw-col-right">
+            <div class="draw-label">Volume</div>
+            <div class="draw-primary" id="draw-ml-${id}" style="color:${color}">—</div>
+            <div class="draw-sub-label">mL</div>
+          </div>
+        </div>
+        <div class="syringe-wrap">
+          <div class="syringe-track">
+            <div class="syringe-fill" id="fill-${id}" style="width:0%;background:${color};box-shadow:0 0 8px ${color}55"></div>
+          </div>
+          <div class="syringe-labels">
+            <span>0</span><span id="syr-mid-${id}"></span><span id="syr-max-${id}"></span>
+          </div>
+        </div>
+        <div class="card-alert" id="alert-${id}"></div>
+      </div>
+    </div>`;
+
+  list.appendChild(div);
+
+  const nameSelect  = div.querySelector('.card-name-select');
+  const inpMg       = div.querySelector('.inp-mg');
+  const inpBac      = div.querySelector('.inp-bac');
+  const inpGhIU     = div.querySelector('.inp-gh-iu');
+  const inpGhBac    = div.querySelector('.inp-gh-bac');
+  const inpDose     = div.querySelector('.inp-dose');
+  const inpUnit     = div.querySelector('.inp-unit');
+  const lblMg       = div.querySelector('.lbl-mg');
+  const rowStd      = div.querySelector('.row-standard');
+  const rowGh       = div.querySelector('.row-gh');
+
+  nameSelect.addEventListener('change', function() {
+    const pi = parseInt(this.value);
+    if (isNaN(pi)) return;
+    const p = PEPTIDES[pi];
+
+    if (p.isGH) {
+      div.classList.add('gh-mode');
+      inpGhIU.value   = p.ghIU || 10;
+      inpGhBac.value  = 2;
+      inpDose.value   = p.dose || 2;
+      inpUnit.value   = 'iu';
+      // Disable unit select — GH is always IU
+      inpUnit.disabled = true;
+    } else {
+      div.classList.remove('gh-mode');
+      inpUnit.disabled = false;
+      if (p.mg !== '')   inpMg.value   = p.mg;
+      inpBac.value = 2;
+      if (p.dose !== '') inpDose.value = p.dose;
+      inpUnit.value = p.unit || 'mcg';
+    }
+    calcCard(id);
+  });
+
+  div.querySelector('.btn-save-formula').addEventListener('click', () => savePeptideFormula(id));
+  div.querySelector('.btn-remove').addEventListener('click', e => {
+    removePeptide(parseInt(e.currentTarget.dataset.id));
+  });
+
+  div.querySelectorAll('input, select:not(.card-name-select)').forEach(el => {
+    el.addEventListener('input',  () => calcCard(id));
+    el.addEventListener('change', () => calcCard(id));
+  });
+
+  calcCard(id);
+}
+
+function calcCard(id) {
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+
+  const isGH    = card.classList.contains('gh-mode');
+  const syrML   = getSyringeML();
+  const syrU    = syrML * 100;
+  const pep     = peptides.find(p => p.id === id);
+  const col     = pep ? pep.color : '#5af0c4';
+
+  const statusEl = document.getElementById('status-' + id);
+  const fillEl   = document.getElementById('fill-' + id);
+  const alertEl  = document.getElementById('alert-' + id);
+
+  if (isGH) {
+    // ── Growth Hormone IU path ──
+    const ghIU  = parseFloat(card.querySelector('.inp-gh-iu').value)  || 0;
+    const bac   = parseFloat(card.querySelector('.inp-gh-bac').value) || 0;
+    const dose  = parseFloat(card.querySelector('.inp-dose').value)   || 0;  // in IU
+
+    if (!ghIU || !bac || !dose) { statusEl.className = 'card-status'; updateSummary(); return; }
+
+    const iuPerMl  = ghIU / bac;          // IU per mL after reconstitution
+    const drawML   = dose / iuPerMl;      // mL to draw for desired IU dose
+    const drawU    = drawML * 100;
+    const doses    = ghIU / dose;
+    const fillPct  = Math.min((drawU / syrU) * 100, 100);
+
+    document.getElementById('conc-' + id).textContent       = iuPerMl.toFixed(2);
+    document.getElementById('conc-unit-' + id).textContent  = 'IU / mL';
+    document.getElementById('doses-' + id).textContent      = doses >= 10 ? Math.floor(doses) : doses.toFixed(1);
+    document.getElementById('total-label-' + id).textContent = 'Vial total';
+    document.getElementById('total-' + id).textContent      = ghIU;
+    document.getElementById('total-unit-' + id).textContent = 'IU';
+    document.getElementById('draw-units-' + id).textContent = drawU.toFixed(1);
+    document.getElementById('draw-ml-' + id).textContent    = drawML < 0.001 ? '<0.001' : drawML.toFixed(3);
+    document.getElementById('syr-mid-' + id).textContent    = Math.round(syrU / 2);
+    document.getElementById('syr-max-' + id).textContent    = syrU + ' u';
+
+    applyFill(fillEl, alertEl, statusEl, col, fillPct, drawU, syrU, drawML);
+    updateSummary();
+    return;
+  }
+
+  // ── Standard peptide path ──
+  const mg   = parseFloat(card.querySelector('.inp-mg').value)   || 0;
+  const bac  = parseFloat(card.querySelector('.inp-bac').value)  || 0;
+  const dose = parseFloat(card.querySelector('.inp-dose').value) || 0;
+  const unit = card.querySelector('.inp-unit').value;
+
+  if (!mg || !bac || !dose) { statusEl.className = 'card-status'; updateSummary(); return; }
+
+  const mcgTotal = mg * 1000;
+  const conc     = mcgTotal / bac;   // mcg/mL
+
+  let doseMcg = 0;
+  if      (unit === 'mcg') doseMcg = dose;
+  else if (unit === 'mg')  doseMcg = dose * 1000;
+  else if (unit === 'iu')  doseMcg = dose;   // generic IU fallback (1 IU ~ 1 mcg)
+
+  const drawML  = doseMcg / conc;
+  const drawU   = drawML * 100;
+  const doses   = mcgTotal / doseMcg;
+  const fillPct = Math.min((drawU / syrU) * 100, 100);
+
+  let concDisp, concUnit;
+  if (conc >= 1000) { concDisp = (conc/1000).toFixed(2); concUnit = 'mg/mL'; }
+  else              { concDisp = Math.round(conc).toString(); concUnit = 'mcg/mL'; }
+
+  document.getElementById('conc-' + id).textContent       = concDisp;
+  document.getElementById('conc-unit-' + id).textContent  = concUnit;
+  document.getElementById('doses-' + id).textContent      = doses >= 10 ? Math.floor(doses) : doses.toFixed(1);
+  document.getElementById('total-label-' + id).textContent = 'Total';
+  document.getElementById('total-' + id).textContent      = mcgTotal >= 1000 ? (mcgTotal/1000).toFixed(2) : Math.round(mcgTotal);
+  document.getElementById('total-unit-' + id).textContent = mcgTotal >= 1000 ? 'mg' : 'mcg';
+  document.getElementById('draw-units-' + id).textContent = drawU.toFixed(1);
+  document.getElementById('draw-ml-' + id).textContent    = drawML < 0.001 ? '<0.001' : drawML.toFixed(3);
+  document.getElementById('syr-mid-' + id).textContent    = Math.round(syrU / 2);
+  document.getElementById('syr-max-' + id).textContent    = syrU + ' u';
+
+  applyFill(fillEl, alertEl, statusEl, col, fillPct, drawU, syrU, drawML);
+  updateSummary();
+}
+
+function applyFill(fillEl, alertEl, statusEl, col, fillPct, drawU, syrU, drawML) {
+  fillEl.style.width      = fillPct.toFixed(1) + '%';
+  fillEl.style.background = col;
+  fillEl.style.boxShadow  = `0 0 8px ${col}55`;
+  alertEl.className       = 'card-alert';
+  alertEl.textContent     = '';
+  statusEl.className      = 'card-status ok';
+
+  if (drawU > syrU) {
+    fillEl.style.background = 'var(--danger)';
+    fillEl.style.boxShadow  = '0 0 8px rgba(240,90,90,0.35)';
+    fillEl.style.width      = '100%';
+    statusEl.className      = 'card-status danger';
+    alertEl.className       = 'card-alert danger';
+    alertEl.textContent     = 'Dose exceeds syringe capacity. Use a larger syringe or reduce BAC water to increase concentration.';
+  } else if (drawML < 0.01) {
+    statusEl.className      = 'card-status warn';
+    alertEl.className       = 'card-alert warn';
+    alertEl.textContent     = 'Very small draw volume — accuracy may be limited. Consider adding more BAC water.';
+  } else if (fillPct > 80) {
+    fillEl.style.background = 'var(--warn)';
+    fillEl.style.boxShadow  = '0 0 8px rgba(240,160,80,0.35)';
+  }
+}
+
+function updateSummary() {
+  const count   = peptides.length;
+  const summary = document.getElementById('summary');
+  if (count < 2) { summary.style.display = 'none'; return; }
+  summary.style.display = 'block';
+
+  let totalDrawU = 0, totalDoses = 0, valid = 0;
+  const syrML = getSyringeML();
+  const syrU  = syrML * 100;
+
+  peptides.forEach(p => {
+    const card = document.getElementById('card-' + p.id);
+    if (!card) return;
+    const isGH = card.classList.contains('gh-mode');
+
+    if (isGH) {
+      const ghIU = parseFloat(card.querySelector('.inp-gh-iu').value)  || 0;
+      const bac  = parseFloat(card.querySelector('.inp-gh-bac').value) || 0;
+      const dose = parseFloat(card.querySelector('.inp-dose').value)   || 0;
+      if (!ghIU || !bac || !dose) return;
+      const iuPerMl = ghIU / bac;
+      const drawML  = dose / iuPerMl;
+      totalDrawU += drawML * 100;
+      totalDoses += ghIU / dose;
+    } else {
+      const mg   = parseFloat(card.querySelector('.inp-mg').value)   || 0;
+      const bac  = parseFloat(card.querySelector('.inp-bac').value)  || 0;
+      const dose = parseFloat(card.querySelector('.inp-dose').value) || 0;
+      const unit = card.querySelector('.inp-unit').value;
+      if (!mg || !bac || !dose) return;
+      const mcgTotal = mg * 1000;
+      const conc     = mcgTotal / bac;
+      const doseMcg  = unit === 'mcg' ? dose : unit === 'mg' ? dose * 1000 : dose;
+      const drawML   = doseMcg / conc;
+      totalDrawU += drawML * 100;
+      totalDoses += mcgTotal / doseMcg;
+    }
+    valid++;
+  });
+
+  document.getElementById('sum-count').textContent  = count;
+  document.getElementById('sum-draw').textContent   = valid ? totalDrawU.toFixed(1)         : '—';
+  document.getElementById('sum-doses').textContent  = valid ? Math.floor(totalDoses / valid) : '—';
+}
+
+document.getElementById('global_syringe').addEventListener('change', () => {
+  peptides.forEach(p => calcCard(p.id));
+});
+
+document.getElementById('btn-add').addEventListener('click', addPeptide);
+
+addPeptide();
+// ─────────────────────────────────────────────
+// BLEND SECTION — anchor-driven ratio calculation
+// ─────────────────────────────────────────────
+// Logic: all peptides share ONE vial of BAC water.
+// The user picks an "anchor" peptide and sets its desired dose in mg.
+// That determines the draw volume. All other peptides then show
+// what dose (in mcg) they deliver at that same draw volume.
+// ─────────────────────────────────────────────
+let blends = [];
+let nextBlendId = 1;
+
+function addBlend() {
+  const id = nextBlendId++;
+  blends.push({ id, components: [] });
+  renderBlend(id);
+}
+
+function removeBlend(id) {
+  const el = document.getElementById('blend-' + id);
+  if (el) { el.style.opacity='0'; el.style.transform='translateY(-6px)'; setTimeout(() => el.remove(), 160); }
+  blends = blends.filter(b => b.id !== id);
+}
+
+function buildBlendOptions() {
+  // Same list as main dropdown but skipping GH mode (blends are mg-based) and no disabled placeholder
+  let html = '<option value="0" disabled selected>— Select peptide —</option>';
+  PEPTIDES.forEach((p, i) => {
+    if (p.disabled || p.isGH) return;
+    html += `<option value="${i}">${p.name}</option>`;
+  });
+  return html;
+}
+
+function renderBlend(blendId) {
+  const list = document.getElementById('blend-list');
+  const div  = document.createElement('div');
+  div.className = 'blend-card';
+  div.id = 'blend-' + blendId;
+
+  div.innerHTML = `
+    <div class="blend-header">
+      <div class="blend-header-left">
+        <span class="blend-badge">BLEND</span>
+        <input class="blend-name-input" type="text" placeholder="Formula name (e.g. KLOW)" maxlength="40">
+      </div>
+      <div class="card-header-right">
+        <button class="btn-save-formula blend-save" data-bid="${blendId}" data-type="blend" title="Save this blend formula">&#9745; Save</button>
+        <button class="btn-remove" data-bid="${blendId}">&#215;</button>
+      </div>
+    </div>
+    <div class="blend-body">
+
+      <!-- BAC water -->
+      <div class="blend-bac-row">
+        <div class="field" style="max-width:200px;">
+          <label>Bacteriostatic water added (mL)</label>
+          <input type="number" class="blend-bac" value="2" min="0.1" step="0.1">
+        </div>
+      </div>
+
+      <!-- Anchor peptide -->
+      <div class="blend-anchor">
+        <div class="blend-anchor-header">
+          <span class="blend-anchor-badge">ANCHOR</span>
+          <span class="blend-anchor-label">This peptide drives the dose — set how much you want per injection</span>
+        </div>
+        <div class="blend-anchor-inputs">
+          <div class="field">
+            <label>Anchor peptide</label>
+            <select class="blend-anchor-select" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 28px 8px 10px;outline:none;width:100%;-webkit-appearance:none;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a7f8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;">${buildBlendOptions()}</select>
+          </div>
+          <div class="field">
+            <label>Amount in vial (mg)</label>
+            <input type="number" class="blend-anchor-vial-mg" value="" placeholder="e.g. 65" min="0.001" step="0.1">
+          </div>
+          <div class="field">
+            <label>Desired dose</label>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px;">
+              <input type="number" class="blend-anchor-dose" value="" placeholder="e.g. 2" min="0.001" step="0.1">
+              <select class="blend-anchor-unit">
+                <option value="mg">mg</option>
+                <option value="mcg">mcg</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other peptides in the blend -->
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;margin-top:14px;">Other peptides in this vial</div>
+      <div class="blend-components" id="blend-comps-${blendId}"></div>
+      <button class="btn-add-comp" data-bid="${blendId}">
+        <span style="font-size:16px;font-weight:300;line-height:1;">+</span>
+        Add another peptide
+      </button>
+
+      <!-- Overall draw result -->
+      <div class="blend-draw-result" id="blend-result-${blendId}" style="display:none;">
+        <div class="blend-draw-title">Per injection — draw up</div>
+        <div class="blend-draw-row">
+          <div class="blend-draw-col">
+            <div class="blend-draw-label">Syringe units</div>
+            <div class="blend-draw-num" id="blend-units-${blendId}">—</div>
+            <div class="blend-draw-sub">units</div>
+          </div>
+          <div class="blend-draw-col blend-draw-col-right">
+            <div class="blend-draw-label">Volume</div>
+            <div class="blend-draw-num" id="blend-ml-${blendId}">—</div>
+            <div class="blend-draw-sub">mL</div>
+          </div>
+        </div>
+      </div>
+
+    </div>`;
+
+  list.appendChild(div);
+
+  div.querySelector('.btn-save-formula').addEventListener('click', () => saveBlendFormula(blendId));
+  div.querySelector('.btn-remove').addEventListener('click', e => removeBlend(parseInt(e.currentTarget.dataset.bid)));
+  div.querySelector('.btn-add-comp').addEventListener('click', e => addBlendComp(parseInt(e.currentTarget.dataset.bid)));
+  div.querySelectorAll('.blend-bac, .blend-anchor-vial-mg, .blend-anchor-dose, .blend-anchor-unit').forEach(el => {
+    el.addEventListener('input',  () => calcBlend(blendId));
+    el.addEventListener('change', () => calcBlend(blendId));
+  });
+
+  // Auto-fill anchor mg when peptide selected
+  div.querySelector('.blend-anchor-select').addEventListener('change', function() {
+    const pi = parseInt(this.value);
+    if (isNaN(pi) || pi === 0) return;
+    const p = PEPTIDES[pi];
+    if (!p) return;
+    if (p.mg !== '') div.querySelector('.blend-anchor-vial-mg').value = p.mg;
+    // Auto-fill dose and unit from peptide defaults
+    if (p.dose !== '') {
+      div.querySelector('.blend-anchor-dose').value = p.dose;
+      // Map unit: mg->mg, mcg->mcg (blend anchor only supports mg/mcg)
+      const u = p.unit === 'mg' ? 'mg' : 'mcg';
+      div.querySelector('.blend-anchor-unit').value = u;
+    }
+    calcBlend(blendId);
+  });
+
+  // Start with default components for KLOW-style
+  addBlendComp(blendId);
+  addBlendComp(blendId);
+  addBlendComp(blendId);
+}
+
+let nextCompId = 1;
+
+function addBlendComp(blendId) {
+  const blend = blends.find(b => b.id === blendId);
+  if (!blend) return;
+  const compId = nextCompId++;
+  blend.components.push(compId);
+
+  const container = document.getElementById('blend-comps-' + blendId);
+  const compDiv = document.createElement('div');
+  compDiv.className = 'blend-component';
+  compDiv.id = 'comp-' + compId;
+
+  compDiv.innerHTML = `
+    <select class="blend-comp-select" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 24px 7px 8px;outline:none;min-width:0;width:100%;-webkit-appearance:none;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a7f8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;">${buildBlendOptions()}</select>
+    <div class="blend-comp-mg-wrap">
+      <span class="blend-comp-mg-label">In vial (mg)</span>
+      <input type="number" class="comp-mg blend-comp-mg-input" value="" placeholder="10" min="0.001" step="0.1">
+    </div>
+    <div class="blend-comp-result-wrap">
+      <span class="blend-comp-dose-val" id="comp-dose-${compId}">—</span>
+      <span class="blend-comp-dose-unit" id="comp-dose-unit-${compId}">mcg / injection</span>
+    </div>
+    <button class="btn-remove-comp" data-cid="${compId}" data-bid="${blendId}">&#215;</button>`;
+
+  container.appendChild(compDiv);
+
+  compDiv.querySelector('.btn-remove-comp').addEventListener('click', e => {
+    const bid = parseInt(e.currentTarget.dataset.bid);
+    const cid = parseInt(e.currentTarget.dataset.cid);
+    removeBlendComp(bid, cid);
+  });
+
+  compDiv.querySelectorAll('input').forEach(el => {
+    el.addEventListener('input', () => calcBlend(blendId));
+  });
+
+  // Auto-fill mg when peptide selected from dropdown
+  const compSel = compDiv.querySelector('.blend-comp-select');
+  compSel.addEventListener('change', function() {
+    const pi = parseInt(this.value);
+    if (isNaN(pi) || pi === 0) return;
+    const p = PEPTIDES[pi];
+    if (p && p.mg !== '') {
+      compDiv.querySelector('.comp-mg').value = p.mg;
+      calcBlend(blendId);
+    }
+  });
+
+  calcBlend(blendId);
+}
+
+function removeBlendComp(blendId, compId) {
+  const blend = blends.find(b => b.id === blendId);
+  if (blend) blend.components = blend.components.filter(c => c !== compId);
+  const el = document.getElementById('comp-' + compId);
+  if (el) { el.style.opacity='0'; setTimeout(() => { el.remove(); calcBlend(blendId); }, 150); }
+}
+
+function calcBlend(blendId) {
+  const card = document.getElementById('blend-' + blendId);
+  if (!card) return;
+  const blend = blends.find(b => b.id === blendId);
+  if (!blend) return;
+
+  const bac         = parseFloat(card.querySelector('.blend-bac').value)           || 0;
+  const anchorVialMg = parseFloat(card.querySelector('.blend-anchor-vial-mg').value) || 0;
+  const anchorDose  = parseFloat(card.querySelector('.blend-anchor-dose').value)   || 0;
+  const anchorUnit  = card.querySelector('.blend-anchor-unit').value;
+  const syrML       = getSyringeML();
+  const syrU        = syrML * 100;
+
+  const resultEl = document.getElementById('blend-result-' + blendId);
+  const unitsEl  = document.getElementById('blend-units-' + blendId);
+  const mlEl     = document.getElementById('blend-ml-' + blendId);
+
+  // ── Core math ──
+  // All peptides share the same BAC water, so each has its own concentration:
+  //   concX (mcg/mL) = (mgX * 1000) / bac
+  //
+  // Anchor concentration:
+  //   anchorConc = (anchorVialMg * 1000) / bac
+  //
+  // Anchor dose → draw volume:
+  //   anchorDoseMcg = anchorDose (converted to mcg)
+  //   drawML = anchorDoseMcg / anchorConc
+  //
+  // For every other peptide X at that same drawML:
+  //   deliveredMcg = concX * drawML = (mgX * 1000 / bac) * drawML
+
+  if (!bac || !anchorVialMg || !anchorDose) {
+    // Clear all comp results
+    blend.components.forEach(cid => {
+      const dv = document.getElementById('comp-dose-' + cid);
+      if (dv) dv.textContent = '—';
+    });
+    if (resultEl) resultEl.style.display = 'none';
+    return;
+  }
+
+  const anchorConcMcgPerMl = (anchorVialMg * 1000) / bac;
+  const anchorDoseMcg      = anchorUnit === 'mg' ? anchorDose * 1000 : anchorDose;
+  const drawML             = anchorDoseMcg / anchorConcMcgPerMl;
+  const drawU              = drawML * 100;
+
+  // Show overall draw
+  resultEl.style.display = 'block';
+  unitsEl.textContent = drawU.toFixed(1);
+  mlEl.textContent    = drawML.toFixed(3);
+
+  // For each other component, show delivered dose at this draw volume
+  blend.components.forEach(cid => {
+    const comp = document.getElementById('comp-' + cid);
+    if (!comp) return;
+
+    const mg     = parseFloat(comp.querySelector('.comp-mg').value) || 0;
+    const doseEl = document.getElementById('comp-dose-' + cid);
+    const unitEl = document.getElementById('comp-dose-unit-' + cid);
+
+    if (!mg || !bac) {
+      if (doseEl) doseEl.textContent = '—';
+      return;
+    }
+
+    const compConcMcgPerMl  = (mg * 1000) / bac;
+    const deliveredMcg      = compConcMcgPerMl * drawML;
+
+    // Display in most readable unit
+    if (doseEl) {
+      if (deliveredMcg >= 1000) {
+        doseEl.textContent = (deliveredMcg / 1000).toFixed(2);
+        if (unitEl) unitEl.textContent = 'mg / injection';
+      } else {
+        doseEl.textContent = deliveredMcg.toFixed(1);
+        if (unitEl) unitEl.textContent = 'mcg / injection';
+      }
+    }
+  });
+}
+
+document.getElementById('btn-add-blend').addEventListener('click', addBlend);
+
+
+// ═══════════════════════════════════════════════
+// SAVED FORMULAS — localStorage engine
+// ═══════════════════════════════════════════════
+
+const STORAGE_KEY = 'peptide_saved_formulas_v1';
+
+function loadStorage() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveStorage(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  catch(e) { showToast('Storage full — could not save'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── Snapshot a peptide card ──
+function snapPeptide(id) {
+  const card = document.getElementById('card-' + id);
+  if (!card) return null;
+  const isGH   = card.classList.contains('gh-mode');
+  const nameEl = card.querySelector('.card-name-select');
+  const name   = nameEl ? nameEl.options[nameEl.selectedIndex]?.text : 'Peptide';
+
+  if (isGH) {
+    return {
+      type:    'peptide',
+      subtype: 'gh',
+      name:    name,
+      ghIU:    card.querySelector('.inp-gh-iu')?.value  || '10',
+      ghBac:   card.querySelector('.inp-gh-bac')?.value || '2',
+      dose:    card.querySelector('.inp-dose')?.value   || '2',
+      unit:    'iu',
+      peptideIndex: card.querySelector('.card-name-select')?.value || '0',
+    };
+  } else {
+    return {
+      type:    'peptide',
+      subtype: 'standard',
+      name:    name,
+      mg:      card.querySelector('.inp-mg')?.value   || '',
+      bac:     card.querySelector('.inp-bac')?.value  || '2',
+      dose:    card.querySelector('.inp-dose')?.value || '',
+      unit:    card.querySelector('.inp-unit')?.value || 'mcg',
+      peptideIndex: card.querySelector('.card-name-select')?.value || '0',
+    };
+  }
+}
+
+// ── Snapshot a blend card ──
+function snapBlend(blendId) {
+  const card = document.getElementById('blend-' + blendId);
+  if (!card) return null;
+
+  const blend = blends.find(b => b.id === blendId);
+  const formulaName = card.querySelector('.blend-name-input')?.value || 'Blend';
+  const anchorSelectIdx = card.querySelector('.blend-anchor-select')?.value || '0';
+
+  const components = (blend?.components || []).map(cid => {
+    const comp = document.getElementById('comp-' + cid);
+    if (!comp) return null;
+    return {
+      name: comp.querySelector('.blend-comp-name-input')?.value || '',
+      mg:   comp.querySelector('.comp-mg')?.value || '',
+    };
+  }).filter(Boolean);
+
+  // Capture component dropdown indices
+  const compIndices = (blend?.components || []).map(cid => {
+    const comp = document.getElementById('comp-' + cid);
+    return comp?.querySelector('.blend-comp-select')?.value || '0';
+  });
+
+  return {
+    type:           'blend',
+    name:           formulaName,
+    bac:            card.querySelector('.blend-bac')?.value              || '2',
+    anchorSelectIdx,
+    anchorVialMg:   card.querySelector('.blend-anchor-vial-mg')?.value   || '',
+    anchorDose:     card.querySelector('.blend-anchor-dose')?.value      || '',
+    anchorUnit:     card.querySelector('.blend-anchor-unit')?.value      || 'mg',
+    components,
+    compIndices,
+  };
+}
+
+function savePeptideFormula(id) {
+  const snap = snapPeptide(id);
+  if (!snap) return;
+  const saved = loadStorage();
+  const entry = { id: Date.now(), savedAt: new Date().toLocaleDateString(), ...snap };
+  saved.unshift(entry);
+  saveStorage(saved);
+  renderSavedList();
+  showToast('Saved: ' + snap.name);
+
+  // Flash the button
+  const btn = document.querySelector(`[data-id="${id}"].btn-save-formula`);
+  if (btn) { btn.classList.add('saved-flash'); setTimeout(() => btn.classList.remove('saved-flash'), 1200); }
+}
+
+function saveBlendFormula(blendId) {
+  const snap = snapBlend(blendId);
+  if (!snap) return;
+  const saved = loadStorage();
+  const entry = { id: Date.now(), savedAt: new Date().toLocaleDateString(), ...snap };
+  saved.unshift(entry);
+  saveStorage(saved);
+  renderSavedList();
+  showToast('Saved: ' + (snap.name || 'Blend'));
+
+  const btn = document.querySelector(`[data-bid="${blendId}"].btn-save-formula`);
+  if (btn) { btn.classList.add('saved-flash'); setTimeout(() => btn.classList.remove('saved-flash'), 1200); }
+}
+
+function deleteSaved(entryId) {
+  const saved = loadStorage().filter(e => e.id !== entryId);
+  saveStorage(saved);
+  renderSavedList();
+  showToast('Formula removed');
+}
+
+// ── Load a saved peptide ──
+function loadPeptide(entry) {
+  addPeptide();
+  const id   = peptides[peptides.length - 1].id;
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+
+  // Set the dropdown
+  const sel = card.querySelector('.card-name-select');
+  if (sel && entry.peptideIndex) {
+    sel.value = entry.peptideIndex;
+    sel.dispatchEvent(new Event('change'));
+  }
+
+  setTimeout(() => {
+    if (entry.subtype === 'gh') {
+      card.classList.add('gh-mode');
+      card.querySelector('.inp-gh-iu').value  = entry.ghIU  || '10';
+      card.querySelector('.inp-gh-bac').value = entry.ghBac || '2';
+      card.querySelector('.inp-dose').value   = entry.dose  || '2';
+      card.querySelector('.inp-unit').value   = 'iu';
+      card.querySelector('.inp-unit').disabled = true;
+    } else {
+      card.querySelector('.inp-mg').value   = entry.mg   || '';
+      card.querySelector('.inp-bac').value  = entry.bac  || '2';
+      card.querySelector('.inp-dose').value = entry.dose || '';
+      card.querySelector('.inp-unit').value = entry.unit || 'mcg';
+    }
+    calcCard(id);
+    showToast('Loaded: ' + entry.name);
+    card.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 80);
+}
+
+// ── Load a saved blend ──
+function loadBlend(entry) {
+  addBlend();
+  const blendId = blends[blends.length - 1].id;
+  const card    = document.getElementById('blend-' + blendId);
+  if (!card) return;
+
+  setTimeout(() => {
+    card.querySelector('.blend-name-input').value       = entry.name        || '';
+    card.querySelector('.blend-bac').value              = entry.bac         || '2';
+    if (entry.anchorSelectIdx) card.querySelector('.blend-anchor-select').value = entry.anchorSelectIdx;
+    card.querySelector('.blend-anchor-vial-mg').value   = entry.anchorVialMg|| '';
+    card.querySelector('.blend-anchor-dose').value      = entry.anchorDose  || '';
+    card.querySelector('.blend-anchor-unit').value      = entry.anchorUnit  || 'mg';
+
+    // Remove the default empty components
+    const blend = blends.find(b => b.id === blendId);
+    if (blend) {
+      [...blend.components].forEach(cid => removeBlendComp(blendId, cid));
+      blend.components = [];
+    }
+    const container = document.getElementById('blend-comps-' + blendId);
+    if (container) container.innerHTML = '';
+
+    // Add saved components
+    setTimeout(() => {
+      (entry.components || []).forEach((comp, idx) => {
+        addBlendComp(blendId);
+        const lastCid = blends.find(b => b.id === blendId)?.components.slice(-1)[0];
+        if (!lastCid) return;
+        const compEl = document.getElementById('comp-' + lastCid);
+        if (!compEl) return;
+        if (entry.compIndices && entry.compIndices[idx]) {
+          const sel = compEl.querySelector('.blend-comp-select');
+          if (sel) sel.value = entry.compIndices[idx];
+        }
+        compEl.querySelector('.comp-mg').value = comp.mg || '';
+      });
+      calcBlend(blendId);
+      showToast('Loaded: ' + (entry.name || 'Blend'));
+      card.scrollIntoView({ behavior:'smooth', block:'center' });
+    }, 60);
+  }, 80);
+}
+
+// ── Render the saved list panel ──
+function renderSavedList() {
+  const saved    = loadStorage();
+  const listEl   = document.getElementById('saved-list');
+  const emptyEl  = document.getElementById('saved-empty');
+  const countEl  = document.getElementById('saved-count');
+
+  countEl.textContent = saved.length + ' saved';
+
+  if (saved.length === 0) {
+    listEl.innerHTML = '';
+    listEl.appendChild(emptyEl);
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = '<div class="saved-list"></div>';
+  const ul = listEl.querySelector('.saved-list');
+
+  saved.forEach(entry => {
+    const isBlend = entry.type === 'blend';
+    const icon    = isBlend ? '⊕' : '◉';
+    const meta    = isBlend
+      ? (entry.anchorName ? 'Anchor: ' + entry.anchorName : 'Blend formula') + ' · ' + (entry.savedAt || '')
+      : (entry.subtype === 'gh' ? 'GH · IU mode' : (entry.mg ? entry.mg + 'mg' : '') + (entry.dose ? ' · ' + entry.dose + ' ' + entry.unit : '')) + ' · ' + (entry.savedAt || '');
+
+    const li = document.createElement('div');
+    li.className = 'saved-item';
+    li.innerHTML = `
+      <div class="saved-item-icon type-${entry.type}" style="color:${isBlend ? '#fac85a' : 'var(--accent)'}">${icon}</div>
+      <div class="saved-item-info">
+        <div class="saved-item-name">${entry.name || 'Untitled'}</div>
+        <div class="saved-item-meta">${meta}</div>
+      </div>
+      <div class="saved-item-actions">
+        <button class="btn-load ${isBlend ? 'blend-load' : ''}">Load</button>
+        <button class="btn-del-saved" title="Delete">&#215;</button>
+      </div>`;
+
+    li.querySelector('.btn-load').addEventListener('click', () => {
+      isBlend ? loadBlend(entry) : loadPeptide(entry);
+    });
+    li.querySelector('.btn-del-saved').addEventListener('click', () => deleteSaved(entry.id));
+
+    ul.appendChild(li);
+  });
+}
+
+// Init saved list on page load
+renderSavedList();
+
+</script>
+
+<script>
+document.getElementById('btn-install')?.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('install-banner').style.display = 'none';
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(() => console.log('SW registration failed'));
+  });
+}
+
+// iOS install prompt helper
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+});
+</script>
+</body>
+</html>
